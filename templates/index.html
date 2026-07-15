@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LawFinder 2.0</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+    <!-- Header -->
+    <div class="bg-gray-200 py-10 text-center">
+        <h1 class="text-4xl font-bold">Lawfinder</h1>
+    </div>
+
+    <!-- Search -->
+    <div class="flex justify-center mt-8">
+        <div class="flex items-center w-full max-w-2xl bg-white rounded-full shadow px-4">
+            <input 
+                type="text" 
+                id="searchInput" 
+                placeholder="Ex.: Domestic violence" 
+                class="flex-grow px-3 py-2 rounded-full focus:outline-none"
+            >
+            <button 
+                id="searchButton" 
+                class="ml-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-full"
+            >
+                Search
+            </button>
+        </div>
+    </div>
+
+    <!-- Results -->
+    <div class="flex justify-center mt-10 px-4 space-x-6 flex-wrap">
+        <!-- EUR-Lex -->
+        <div class="bg-white rounded-lg shadow p-4 w-80 min-h-[250px]">
+            <h2 class="font-medium mb-2">EurLex Results:</h2>
+            <div id="eurlexResults" class="space-y-1 text-sm text-blue-500"></div>
+        </div>
+
+        <!-- N-Lex -->
+        <div class="bg-white rounded-lg shadow p-4 w-80 min-h-[250px]">
+            <h2 class="font-medium mb-2">NLex Results:</h2>
+            <div id="nlexResults" class="space-y-1 text-sm text-blue-500"></div>
+        </div>
+
+        <!-- LegislationOnline -->
+        <div class="bg-white rounded-lg shadow p-4 w-80 min-h-[250px]">
+            <h2 class="font-medium mb-2">LegislationOnline Results:</h2>
+            <div id="legislationlineResults" class="space-y-1 text-sm text-blue-500"></div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('searchButton').addEventListener('click', async () => {
+            const query = document.getElementById('searchInput').value.trim();
+            if (!query) {
+                alert('Please enter a search query');
+                return;
+            }
+
+            // Clear previous results
+            document.getElementById('eurlexResults').innerHTML = '<p class="text-gray-500">Searching...</p>';
+            document.getElementById('nlexResults').innerHTML = '<p class="text-gray-500">Searching...</p>';
+            document.getElementById('legislationlineResults').innerHTML = '<p class="text-gray-500">Searching...</p>';
+
+            try {
+                const response = await fetch('/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `query=${encodeURIComponent(query)}`
+                });
+                const data = await response.json();
+
+                // Reset all boxes
+                document.getElementById('eurlexResults').innerHTML = '';
+                document.getElementById('nlexResults').innerHTML = '';
+                document.getElementById('legislationlineResults').innerHTML = '';
+
+                if (data.error) {
+                    document.getElementById('eurlexResults').innerHTML = `<p class="text-red-500">${data.error}</p>`;
+                    document.getElementById('nlexResults').innerHTML = `<p class="text-red-500">${data.error}</p>`;
+                    document.getElementById('legislationlineResults').innerHTML = `<p class="text-red-500">${data.error}</p>`;
+                } else if (data.results && data.results.length > 0) {
+                    data.results.forEach(result => {
+                        const link = `<a href="${result.url}" target="_blank" class="hover:underline">${result.source} Search Results</a>`;
+                        if (result.source === "EUR-Lex") {
+                            document.getElementById('eurlexResults').innerHTML = link;
+                        } else if (result.source === "N-Lex") {
+                            document.getElementById('nlexResults').innerHTML = link;
+                        } else if (result.source === "Legislationline") {
+                            document.getElementById('legislationlineResults').innerHTML = link;
+                        }
+                    });
+                } else {
+                    document.getElementById('eurlexResults').innerHTML = '<p class="text-gray-500">No results found.</p>';
+                    document.getElementById('nlexResults').innerHTML = '<p class="text-gray-500">No results found.</p>';
+                    document.getElementById('legislationlineResults').innerHTML = '<p class="text-gray-500">No results found.</p>';
+                }
+            } catch (error) {
+                const errorHtml = `<p class="text-red-500">Error: ${error.message}</p>`;
+                document.getElementById('eurlexResults').innerHTML = errorHtml;
+                document.getElementById('nlexResults').innerHTML = errorHtml;
+                document.getElementById('legislationlineResults').innerHTML = errorHtml;
+            }
+        });
+    </script>
+</body>
+</html>
